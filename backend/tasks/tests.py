@@ -98,4 +98,5 @@ def test_task_creation_fail_no_project():
     response = client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "project" in response.data
+    # 修正: serializerでwrite_onlyとしてproject_idを使用している
+    assert "project_id" in response.data
