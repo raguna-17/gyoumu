@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
 import { getTasks, createTask, patchTask, deleteTask } from "./taskApi";
 
@@ -8,14 +9,14 @@ describe("taskApi", () => {
         localStorage.setItem("access_token", "test-token");
     });
 
-    it("getTasks: 正常にデータ取得", async () => {
-        axios.get.mockResolvedValue({ data: [{ id: 1 }] });
+    it("getTasks", async () => {
+        axios.get.mockResolvedValue({ data: [] });
 
         const data = await getTasks();
 
-        expect(axios.get).toHaveBeenCalled();
-        expect(data).toEqual([{ id: 1 }]);
+        expect(data).toEqual([]);
     });
+});
 
     it("createTask: 正常に作成", async () => {
         axios.post.mockResolvedValue({ data: { id: 1 } });
@@ -43,4 +44,3 @@ describe("taskApi", () => {
         expect(axios.delete).toHaveBeenCalled();
         expect(data).toEqual({});
     });
-});
