@@ -64,10 +64,10 @@ jobs:
 
       - name: Install frontend dependencies
         run: |
-          cd frontend/src
+          cd frontend
           npm ci
 
       - name: Run frontend tests
         run: |
-          cd frontend/src
+          cd frontend
           npm test -- --watchAll=false
