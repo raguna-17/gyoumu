@@ -13,6 +13,9 @@ describe("useTasks", () => {
         vi.clearAllMocks();
     });
 
+    // ---------------------------
+    // 初期ロード
+    // ---------------------------
     it("初期ロードでタスク取得される", async () => {
         taskApi.getTasks.mockResolvedValue([
             { id: 1, progress: 20, assigned_to: { id: 5 } },
@@ -29,7 +32,7 @@ describe("useTasks", () => {
         expect(result.current.assigneeInputs[1]).toBe(5);
     });
 
-    it("取得失敗時にエラーがセットされる", async () => {
+    it("取得失敗時にエラーセット", async () => {
         taskApi.getTasks.mockRejectedValue(new Error());
 
         const { result } = renderHook(() => useTasks());
@@ -41,17 +44,29 @@ describe("useTasks", () => {
         expect(result.current.error).toBe("タスク取得に失敗しました");
     });
 
-    it("handleCreateでタスク作成＋入力リセット", async () => {
+    // ---------------------------
+    // 作成
+    // ---------------------------
+    it("handleCreateでタスク作成＋リセット", async () => {
         taskApi.createTask.mockResolvedValue({});
         taskApi.getTasks.mockResolvedValue([]);
 
         const { result } = renderHook(() => useTasks());
 
+        // stateセット
         await act(async () => {
             result.current.setProjectId("1");
             result.current.setNewTaskName("task");
             result.current.setNewTaskDesc("desc");
+        });
 
+        // state反映待ち（これがないと死ぬ）
+        await act(async () => {
+            await Promise.resolve();
+        });
+
+        // 実行
+        await act(async () => {
             await result.current.handleCreate();
         });
 
@@ -60,7 +75,10 @@ describe("useTasks", () => {
         expect(result.current.newTaskDesc).toBe("");
     });
 
-    it("onProgressChange 正常値で更新される", async () => {
+    // ---------------------------
+    // 進捗更新
+    // ---------------------------
+    it("onProgressChange 正常値で更新", async () => {
         taskApi.patchTask.mockResolvedValue({});
 
         const { result } = renderHook(() => useTasks());
@@ -74,7 +92,7 @@ describe("useTasks", () => {
         });
     });
 
-    it("onProgressChange 不正値でエラーになる", async () => {
+    it("onProgressChange 不正値でエラー", async () => {
         const { result } = renderHook(() => useTasks());
 
         await act(async () => {
@@ -84,7 +102,10 @@ describe("useTasks", () => {
         expect(result.current.progressErrors[1]).toBe("整数");
     });
 
-    it("onAssigneeChange 正常ユーザーで更新", async () => {
+    // ---------------------------
+    // 担当者変更
+    // ---------------------------
+    it("onAssigneeChange 正常ユーザー", async () => {
         authApi.getUserById.mockResolvedValue({});
         taskApi.patchTask.mockResolvedValue({});
 
@@ -99,7 +120,7 @@ describe("useTasks", () => {
         });
     });
 
-    it("onAssigneeChange 存在しないユーザーでエラー", async () => {
+    it("onAssigneeChange 存在しないユーザー", async () => {
         authApi.getUserById.mockRejectedValue(new Error());
 
         const { result } = renderHook(() => useTasks());
@@ -111,7 +132,10 @@ describe("useTasks", () => {
         expect(result.current.assigneeErrors[1]).toBe("存在しない");
     });
 
-    it("handleDelete confirm OKなら削除", async () => {
+    // ---------------------------
+    // 削除
+    // ---------------------------
+    it("handleDelete OKなら削除", async () => {
         global.confirm = vi.fn(() => true);
         taskApi.deleteTask.mockResolvedValue({});
 
@@ -124,7 +148,7 @@ describe("useTasks", () => {
         expect(taskApi.deleteTask).toHaveBeenCalledWith(1);
     });
 
-    it("handleDelete confirm NGなら何もしない", async () => {
+    it("handleDelete NGなら何もしない", async () => {
         global.confirm = vi.fn(() => false);
 
         const { result } = renderHook(() => useTasks());
