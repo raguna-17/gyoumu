@@ -1,7 +1,8 @@
 import axios from "axios";
+import { describe, it, expect, vi } from "vitest";
 import { registerUser, loginUser, getUsers, getUserById } from "./authApi";
 
-jest.mock("axios");
+vi.mock("axios");
 
 describe("authApi", () => {
 
@@ -94,4 +95,5 @@ describe("authApi", () => {
             await expect(getUserById(999)).rejects.toThrow("ユーザーが見つかりません");
         });
     });
+
 });
