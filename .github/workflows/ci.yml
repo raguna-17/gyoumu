@@ -70,4 +70,4 @@ jobs:
       - name: Run frontend tests
         run: |
           cd frontend/src
-          npx vitest run --coverage
+          npm test -- --watchAll=false
