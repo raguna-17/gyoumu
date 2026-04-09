@@ -46,7 +46,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+
+CORS_ALLOWED_ORIGINS = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173"
+).split(",")
 
 ROOT_URLCONF = 'project_name.urls'
 
@@ -76,13 +81,30 @@ SIMPLE_JWT = {
 
 WSGI_APPLICATION = 'project_name.wsgi.application'
 
-# PostgreSQL データベース
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL", f"postgres://postgres:postgres@db:5432/postgres"),
-        conn_max_age=600,
-    )
-}
+import os
+import dj_database_url
+
+ENV = os.getenv("ENV", "development")
+
+if ENV == "production":
+    # Render用（SQLite）
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
+    }
+else:
+    # Docker / CI（PostgreSQL）
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv(
+                "DATABASE_URL",
+                "postgres://postgres:postgres@db:5432/postgres"
+            ),
+            conn_max_age=600,
+        )
+    }
 
 # パスワードバリデーション
 AUTH_PASSWORD_VALIDATORS = [
