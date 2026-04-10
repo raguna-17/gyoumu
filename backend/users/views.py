@@ -1,34 +1,28 @@
-from rest_framework import viewsets, permissions
+from rest_framework import generics, permissions
 from .models import User
 from .serializers import UserSerializer, UserCreateSerializer
 
 
-class IsAdminOrSelf(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        return request.user.is_staff or obj.id == request.user.id
+class UserCreateView(generics.CreateAPIView):#「POST専用の登録API」
+    """
+    ユーザー登録専用API
+    """
+    queryset = User.objects.all()#どのテーブルを扱うか（内部的に必要）
+    serializer_class = UserCreateSerializer#入力データの検証＆作成ロジック担当
+    permission_classes = [permissions.AllowAny]#ログインしてなくても登録OK
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-
-    def get_permissions(self):
-        if self.action == "create":
-            return [permissions.AllowAny()]
-
-        if self.action in ["list"]:
-            return [permissions.IsAdminUser()]
-
-        return [permissions.IsAuthenticated(), IsAdminOrSelf()]
-
-    def get_serializer_class(self):
-        if self.action == "create":
-            return UserCreateSerializer
-        return UserSerializer
+class UserListView(generics.ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
-        user = self.request.user
+        return User.objects.all()
 
-        if user.is_staff:
-            return User.objects.all()
 
-        return User.objects.filter(id=user.id)
+class MeView(generics.RetrieveAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
