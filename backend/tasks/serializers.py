@@ -9,7 +9,7 @@ from users.serializers import UserSerializer
 # =========================
 
 class ProjectSerializer(serializers.ModelSerializer):
-    owner = UserSerializer(read_only=True)
+    owner = UserSerializer(read_only=True)#Projectに紐づくUser情報をネスト表示
 
     class Meta:
         model = Project
@@ -21,7 +21,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "owner", "created_at", "updated_at"]
+        read_only_fields = ["id", "owner", "created_at", "updated_at"]#クライアントは変更できない
 
 
 class ProjectCreateSerializer(serializers.ModelSerializer):
@@ -35,8 +35,8 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        user = self.context["request"].user
-        return Project.objects.create(owner=user, **validated_data)
+        user = self.context["request"].user#クライアントにownerを決めさせない
+        return Project.objects.create(owner=user, **validated_data)#強制的にログインユーザーのプロジェクトになる
 
 
 # =========================
@@ -123,7 +123,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         if not isinstance(project, Project):
             raise serializers.ValidationError("projectが不正")
 
-        return Task.objects.create(
+        return Task.objects.create(#クライアントは権限持てない構造
             project=project,
             created_by=request.user,
             **validated_data
