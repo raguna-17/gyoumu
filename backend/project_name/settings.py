@@ -1,68 +1,115 @@
 import os
 from pathlib import Path
-import dj_database_url
 from datetime import timedelta
-
+import dj_database_url
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+# =========================
+# 環境管理
+# =========================
+ENV = os.getenv("ENV", "development")
+DEBUG = ENV != "production"
+
+
+# =========================
 # セキュリティ
+# =========================
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-default-key")
-DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ["true", "1"]
 
-# デプロイ先ホスト
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = os.getenv(
+    "DJANGO_ALLOWED_HOSTS",
+    "localhost,127.0.0.1"
+).split(",")
 
-# アプリ
+
+# =========================
+# アプリ定義
+# =========================
 INSTALLED_APPS = [
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'corsheaders',
+    # Django標準
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
 
-    # 自作アプリ
-    'users',
-    'tasks',
-    'dashboard',
+    # 外部
+    "corsheaders",
+    "rest_framework",
+    "drf_spectacular",
 
-    # RESTフレームワーク
-    'rest_framework',
-    'drf_spectacular'
+    # 自作
+    "users",
+    "tasks",
+    "projects",
 ]
 
-AUTH_USER_MODEL = 'users.User'
 
+AUTH_USER_MODEL = "users.User"
+
+
+# =========================
+# ミドルウェア
+# =========================
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = False
 
+# =========================
+# CORS
+# =========================
 CORS_ALLOWED_ORIGINS = os.getenv(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173"
 ).split(",")
 
-ROOT_URLCONF = 'project_name.urls'
+CORS_ALLOW_ALL_ORIGINS = False
 
+
+# =========================
+# URL / WSGI
+# =========================
+ROOT_URLCONF = "project_name.urls"
+WSGI_APPLICATION = "project_name.wsgi.application"
+
+
+# =========================
+# テンプレート
+# =========================
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'APP_DIRS': True,  # ← これ超重要
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
     },
 ]
 
-# RESTフレームワーク設定
+
+# =========================
+# DRF設定
+# =========================
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -73,29 +120,30 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
+
+# =========================
+# JWT設定
+# =========================
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),  # アクセストークン有効期限 1時間
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
-WSGI_APPLICATION = 'project_name.wsgi.application'
 
-import os
-import dj_database_url
-
-ENV = os.getenv("ENV", "development")
-
+# =========================
+# DB設定（環境分離の核心）
+# =========================
 if ENV == "production":
-    # Render用（SQLite）
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 else:
-    # Docker / CI（PostgreSQL）
     DATABASES = {
         "default": dj_database_url.config(
             default=os.getenv(
@@ -106,23 +154,35 @@ else:
         )
     }
 
-# パスワードバリデーション
+
+# =========================
+# パスワード
+# =========================
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# 言語・タイムゾーン
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+
+# =========================
+# 国際化
+# =========================
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "Asia/Tokyo"
 USE_I18N = True
 USE_TZ = True
 
-# 静的ファイル
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# デフォルト主キー
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# =========================
+# 静的ファイル
+# =========================
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+# =========================
+# デフォルトキー
+# =========================
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

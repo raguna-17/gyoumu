@@ -1,54 +1,39 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions
-from .models import Project,Task
-from .serializers import ProjectSerializer, ProjectCreateSerializer, TaskSerializer, TaskCreateSerializer
 
-
-class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_serializer_class(self):#操作によってSerializerを切り替える
-        if self.action == "create":
-            return ProjectCreateSerializer
-        return ProjectSerializer
-
-    def perform_create(self, serializer):#保存時にownerを強制注入
-        serializer.save(owner=self.request.user)
-
-    def get_queryset(self):
-        # 自分のプロジェクトだけ見せる設計（重要）
-        return Project.objects.filter(owner=self.request.user)
+from projects.models import Project
+from .models import Task
+from .serializers import TaskSerializer, TaskCreateSerializer
 
 
 class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        # project配下のタスクだけ返す
-        project_id = self.kwargs.get("project_pk")
-
-        return Task.objects.filter(
-            project_id=project_id,
-            project__owner=self.request.user#他人のプロジェクト経由のタスクを完全遮断
+    def get_project(self):
+        return get_object_or_404(
+            Project,
+            id=self.kwargs["project_id"],
+            owner=self.request.user
         )
 
+    def get_queryset(self):
+        project = self.get_project()
+        return Task.objects.filter(project=project)
+
     def get_serializer_class(self):
-        if self.action == "create":
-            return TaskCreateSerializer
-        return TaskSerializer
+        return (
+            TaskCreateSerializer
+            if self.action == "create"
+            else TaskSerializer
+        )
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-
-        project_id = self.kwargs.get("project_pk")#URLからproject取得
-        project = Project.objects.filter(
-            id=project_id,
-            owner=self.request.user
-        ).first()#プロジェクト取得かつ「自分のものだけ」
-
-        context["project"] = project
+        context["project"] = self.get_project()  # ← これ必須
         return context
 
     def perform_create(self, serializer):
-        # contextでproject渡してるのでここは薄くてOK
-        serializer.save(created_by=self.request.user)
+        serializer.save(
+            project=self.get_project(),
+            created_by=self.request.user
+        )

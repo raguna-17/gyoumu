@@ -1,47 +1,8 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Project, Task
+from .models import Task
 from users.serializers import UserSerializer
 
-
-# =========================
-# Project
-# =========================
-
-class ProjectSerializer(serializers.ModelSerializer):
-    owner = UserSerializer(read_only=True)#Projectに紐づくUser情報をネスト表示
-
-    class Meta:
-        model = Project
-        fields = [
-            "id",
-            "name",
-            "description",
-            "owner",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = ["id", "owner", "created_at", "updated_at"]#クライアントは変更できない
-
-
-class ProjectCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Project
-        fields = ["name", "description"]
-
-    def validate_name(self, value):
-        if len(value.strip()) < 2:
-            raise serializers.ValidationError("プロジェクト名が短すぎる")
-        return value
-
-    def create(self, validated_data):
-        user = self.context["request"].user#クライアントにownerを決めさせない
-        return Project.objects.create(owner=user, **validated_data)#強制的にログインユーザーのプロジェクトになる
-
-
-# =========================
-# Task
-# =========================
 
 class TaskSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -63,14 +24,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = [
-            "id",
-            "project",
-            "assigned_to",
-            "created_by",
-            "created_at",
-            "updated_at",
-        ]
+        read_only_fields = fields
 
 
 class TaskCreateSerializer(serializers.ModelSerializer):
@@ -100,13 +54,12 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_status(self, value):
-        allowed = ["todo", "in_progress", "done"]  # モデルに合わせて調整
+        allowed = ["todo", "in_progress", "done"]
         if value not in allowed:
             raise serializers.ValidationError("不正なステータス")
         return value
 
     def validate(self, attrs):
-        # 例：完了なのにprogressが100じゃない問題を防ぐ
         status = attrs.get("status")
         progress = attrs.get("progress")
 
@@ -116,15 +69,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        request = self.context["request"]
-        project = self.context["project"]
 
-        # projectの安全チェック（地味に重要）
-        if not isinstance(project, Project):
-            raise serializers.ValidationError("projectが不正")
-
-        return Task.objects.create(#クライアントは権限持てない構造
-            project=project,
-            created_by=request.user,
+        return Task.objects.create(
             **validated_data
         )
