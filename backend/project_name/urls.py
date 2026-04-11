@@ -15,6 +15,4 @@ urlpatterns = [
     # タスク＆プロジェクトAPI
     path("api/v1/", include("tasks.urls")),
 
-    # ダッシュボードAPI（今後追加予定）
-    #path("api/v1/", include("dashboard.urls")),
 ]

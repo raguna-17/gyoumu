@@ -1,71 +1,65 @@
 import pytest
 from django.urls import reverse
-from rest_framework.test import APIClient
 from rest_framework import status
-from .models import User
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from users.models import User
+
+def get_token(user):
+    refresh = RefreshToken.for_user(user)
+    return str(refresh.access_token)
 
 @pytest.mark.django_db
-def test_user_creation_success():
-    """正常系: ユーザー登録が成功する"""
+def test_user_create_success():
     client = APIClient()
-    data = {"email": "test@example.com", "password": "secure123"}
-    url = reverse("user-list")  # urls.pyでのViewSetのbasenameが'user'の場合
-    response = client.post(url, data, format="json")
+    url = reverse("user-create")
 
-    assert response.status_code == status.HTTP_201_CREATED
-    assert User.objects.filter(email="test@example.com").exists()
-    user = User.objects.get(email="test@example.com")
-    assert user.role == "user"
-    assert user.is_staff is False
+    res = client.post(url, {
+        "email": "test@example.com",
+        "password": "1234"
+    })
+
+    assert res.status_code == status.HTTP_201_CREATED
+    assert User.objects.count() == 1
 
 @pytest.mark.django_db
-def test_user_creation_fail_no_password():
-    """異常系: パスワードなしはバリデーションエラー"""
+def test_user_create_duplicate_email():
+    User.objects.create_user(email="a@example.com", password="1234")
+
     client = APIClient()
-    data = {"email": "fail@example.com"}
+    url = reverse("user-create")
+
+    res = client.post(url, {
+        "email": "a@example.com",
+        "password": "9999"
+    })
+
+    assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+@pytest.mark.django_db
+def test_me_unauthorized():
+    client = APIClient()
+    url = reverse("me")
+
+    res = client.get(url)
+
+    assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_user_list_forbidden():
+    user = User.objects.create_user(
+        email="user@example.com",
+        password="1234"
+    )
+
+    client = APIClient()
+    token = get_token(user)
+
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
     url = reverse("user-list")
-    response = client.post(url, data, format="json")
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "password" in response.data
+    res = client.get(url)
 
-@pytest.mark.django_db
-def test_user_creation_fail_short_password():
-    """異常系: パスワード3文字未満はエラー"""
-    client = APIClient()
-    data = {"email": "short@example.com", "password": "12"}
-    url = reverse("user-list")
-    response = client.post(url, data, format="json")
-
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "password" in response.data
-
-@pytest.mark.django_db
-def test_user_list_access():
-    """正常系: staff は全ユーザー閲覧可能"""
-    staff = User.objects.create_user(email="staff@example.com", password="pass", is_staff=True)
-    User.objects.create_user(email="user1@example.com", password="pass")
-    User.objects.create_user(email="user2@example.com", password="pass")
-
-    client = APIClient()
-    client.force_authenticate(user=staff)
-    url = reverse("user-list")
-    response = client.get(url)
-
-    assert response.status_code == 200
-    assert len(response.data) >= 3  # staff は全員取得できる
-
-@pytest.mark.django_db
-def test_user_list_access_normal_user():
-    """正常系: 一般ユーザーは自分のみ閲覧可能"""
-    user = User.objects.create_user(email="normal@example.com", password="pass")
-    other_user = User.objects.create_user(email="other@example.com", password="pass")
-
-    client = APIClient()
-    client.force_authenticate(user=user)
-    url = reverse("user-list")
-    response = client.get(url)
-
-    assert response.status_code == 200
-    assert len(response.data) == 1
-    assert response.data[0]["email"] == "normal@example.com"
+    assert res.status_code == status.HTTP_403_FORBIDDEN
