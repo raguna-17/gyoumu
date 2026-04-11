@@ -7,7 +7,6 @@ from .models import Project
 class BaseProjectTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="testuser",
             email="test@example.com",
             password="testpass123"
         )
@@ -56,7 +55,6 @@ class TestProjectList(BaseProjectTest):
         )
 
         other_user = User.objects.create_user(
-            username="other",
             email="other@example.com",
             password="pass123"
         )
