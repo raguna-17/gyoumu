@@ -4,10 +4,6 @@ from .models import Project
 from users.serializers import UserSerializer
 
 
-# =========================
-# Project
-# =========================
-
 class ProjectSerializer(serializers.ModelSerializer):
     owner = UserSerializer(read_only=True)
 

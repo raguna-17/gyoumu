@@ -7,10 +7,6 @@ from .serializers import (
 )
 
 
-# =========================
-# Project
-# =========================
-
 class ProjectViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
