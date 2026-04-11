@@ -8,6 +8,7 @@ class BaseProjectTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="testuser",
+            email="test@example.com",
             password="testpass123"
         )
         self.client.force_authenticate(user=self.user)
@@ -56,6 +57,7 @@ class TestProjectList(BaseProjectTest):
 
         other_user = User.objects.create_user(
             username="other",
+            email="other@example.com",
             password="pass123"
         )
 
