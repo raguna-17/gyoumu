@@ -11,7 +11,10 @@ class UserCreateView(generics.CreateAPIView):#CreateAPIViewでも汎用設計の
     queryset = User.objects.all()#DRFの仕様的に必要なだけ
     serializer_class = UserCreateSerializer#emailチェックpassword処理
     permission_classes = [permissions.AllowAny]#ログインしてなくても登録OK
-
+    def perform_create(self, serializer):
+        print("🔥 HIT CREATE VIEW")
+        print("DATA:", serializer.validated_data)
+        serializer.save()
 
 class UserListView(generics.ListAPIView):#GETで一覧返すだけのView
     serializer_class = UserSerializer
