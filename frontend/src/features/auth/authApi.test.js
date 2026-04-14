@@ -2,7 +2,25 @@ import axios from "axios";
 import { vi } from "vitest";
 import { register, login, getMe, logout } from "./authApi";
 
-vi.mock("axios");
+const mockAxiosInstance = {
+    get: vi.fn(),
+    post: vi.fn(),
+    delete: vi.fn(),
+    put: vi.fn(),
+    interceptors: {
+        request: {
+            use: vi.fn(),
+        },
+    },
+};
+
+vi.mock("axios", () => {
+    return {
+        default: {
+            create: () => mockAxiosInstance,
+        },
+    };
+});
 
 describe("authApi", () => {
     beforeEach(() => {
