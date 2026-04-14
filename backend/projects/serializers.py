@@ -17,10 +17,10 @@ class ProjectSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "owner", "created_at", "updated_at"]
+        read_only_fields = ["id", "owner", "created_at", "updated_at"]#このフィールドはAPI経由で“書き込みできない
 
 
-class ProjectCreateSerializer(serializers.ModelSerializer):
+class ProjectCreateSerializer(serializers.ModelSerializer):#create = 「どうやってDBに保存するかを上書きする場所」
     class Meta:
         model = Project
         fields = ["name", "description"]
@@ -30,10 +30,10 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("プロジェクト名が短すぎる")
         return value
 
-    def create(self, validated_data):
-        request = self.context["request"]
+    def create(self, validated_data):#「ownerはクライアントに触らせず、サーバー側で勝手にログインユーザーを入れる」
+        request = self.context["request"]#👉 Viewから渡されたrequestを取り出してる
         return Project.objects.create(
-            owner=request.user,
-            **validated_data
+            owner=request.user,#ログインユーザーを強制的にownerにする
+            **validated_data#{"name": "...", "description": "..."}👉 バリデーション済みの安全データ
         )
 

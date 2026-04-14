@@ -27,12 +27,12 @@ class TaskViewSet(viewsets.ModelViewSet):
             else TaskSerializer
         )
 
-    def get_serializer_context(self):
+    def get_serializer_context(self):#serializerに追加情報を渡してるだけ
         context = super().get_serializer_context()
         context["project"] = self.get_project()  # ← これ必須
-        return context
+        return context#保存してるんじゃなくて“参照できるように渡してる”だけ
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer):#DB保存時に値を強制的に入れてる
         serializer.save(
             project=self.get_project(),
             created_by=self.request.user

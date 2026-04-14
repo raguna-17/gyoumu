@@ -4,7 +4,7 @@ from .models import Task
 from users.serializers import UserSerializer
 
 
-class TaskSerializer(serializers.ModelSerializer):
+class TaskSerializer(serializers.ModelSerializer):#実質“完全読み取り専用
     project = serializers.PrimaryKeyRelatedField(read_only=True)
     assigned_to = UserSerializer(read_only=True)
     created_by = UserSerializer(read_only=True)

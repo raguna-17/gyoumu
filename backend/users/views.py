@@ -1,9 +1,10 @@
 from rest_framework import generics, permissions
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import User
 from .serializers import UserSerializer, UserCreateSerializer
 
 
-class UserCreateView(generics.CreateAPIView):#「POST専用の登録API」
+class UserCreateView(generics.CreateAPIView):#CreateAPIViewでも汎用設計の都合で queryset が必要なだけで、登録ロジックには直接関与しない
     """
     ユーザー登録専用API
     """
@@ -25,4 +26,4 @@ class MeView(generics.RetrieveAPIView):#単一オブジェクト取得View
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):#URLのID無視,「他人の情報にアクセスする手段が存在しない」
-        return self.request.user
+        return self.request.user#IDベース設計を捨ててユーザーコンテキスト直参照にしてるのが本質

@@ -1,47 +1,39 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import Projects from "./pages/Projects";
+import Tasks from "./pages/Tasks";
 import MainLayout from "./components/layout/MainLayout";
-import Projects from "./features/projects/Projects";
-import Login from "./features/auth/Login";
-import Register from "./features/auth/Register";
-import Dashboard from "./features/dashboard/Dashboard";
-import Tasks from "./features/tasks/Tasks";
+
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem("access");
+  return token ? children : <Navigate to="/login" />;
+};
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* レイアウトなし */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* 未ログイン */}
+        <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* レイアウトあり */}
+        {/* ログイン後 */}
         <Route
-          path="/dashboard"
+          path="/"
           element={
-            <MainLayout>
-              <Dashboard />
-            </MainLayout>
+            <PrivateRoute>
+              <MainLayout />
+            </PrivateRoute>
           }
-        />
-        <Route
-          path="/tasks"
-          element={
-            <MainLayout>
-              <Tasks />
-            </MainLayout>
-          }
-        />
-        <Route
-          path="/projects"
-          element={
-            <MainLayout>
-              <Projects />
-            </MainLayout>
-          }
-        />
+        >
+          <Route path="home" element={<Home />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="/projects/:projectId/tasks" element={<Tasks />} />
+        </Route>
       </Routes>
-
     </BrowserRouter>
   );
 }

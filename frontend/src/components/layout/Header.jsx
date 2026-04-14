@@ -1,15 +1,21 @@
+import { useNavigate } from "react-router-dom";
+import { logout } from "../../features/auth/authApi";
+
 const Header = () => {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate("/login");
+    };
+
     return (
-        <header style={{
-            height: "60px",
-            background: "#333",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            padding: "0 20px"
-        }}>
-            <h3>業務アプリ</h3>
-        </header>
+        <div style={{ padding: "10px", background: "#ddd" }}>
+            <span>My App</span>
+            <button onClick={handleLogout} style={{ float: "right" }}>
+                ログアウト
+            </button>
+        </div>
     );
 };
 

@@ -11,10 +11,10 @@ class Task(models.Model):
         ("done", "完了"),
     ]
 
-    project = models.ForeignKey(
-        "projects.Project",
-        on_delete=models.CASCADE,
-        related_name="tasks"
+    project = models.ForeignKey(#TaskはProjectに属する
+        "projects.Project",#Projectモデルを参照（アプリ名.モデル名）
+        on_delete=models.CASCADE,#Projectが消えたらTaskも全部消える
+        related_name="tasks"#逆参照の名前
     )
 
     name = models.CharField(max_length=100)
@@ -24,8 +24,8 @@ class Task(models.Model):
     assigned_to = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        null=True,#DBレベル
+        blank=True,#フォーム / バリデーションレベル
         related_name="assigned_tasks"
     )
 
