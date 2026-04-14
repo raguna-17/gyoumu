@@ -1,7 +1,6 @@
-import axios from "axios";
 import { vi } from "vitest";
-import { register, login, getMe, logout } from "./authApi";
 
+/* axios完全モック */
 const mockAxiosInstance = {
     get: vi.fn(),
     post: vi.fn(),
@@ -22,21 +21,26 @@ vi.mock("axios", () => {
     };
 });
 
+import axios from "axios";
+import { register, login, getMe, logout } from "./authApi";
+
 describe("authApi", () => {
     beforeEach(() => {
         localStorage.clear();
+        vi.clearAllMocks();
     });
 
-    test("register API success", async () => {
-        axios.post.mockResolvedValue({ data: { id: 1 } });
+    test("register", async () => {
+        mockAxiosInstance.post.mockResolvedValue({ data: { id: 1 } });
 
         const res = await register("test@test.com", "pass");
 
         expect(res).toEqual({ id: 1 });
+        expect(mockAxiosInstance.post).toHaveBeenCalled();
     });
 
-    test("login stores token", async () => {
-        axios.post.mockResolvedValue({
+    test("login stores tokens", async () => {
+        mockAxiosInstance.post.mockResolvedValue({
             data: { access: "a", refresh: "r" },
         });
 
@@ -46,7 +50,15 @@ describe("authApi", () => {
         expect(localStorage.getItem("refresh")).toBe("r");
     });
 
-    test("logout clears tokens", () => {
+    test("getMe", async () => {
+        mockAxiosInstance.get.mockResolvedValue({ data: { id: 1 } });
+
+        const res = await getMe();
+
+        expect(res).toEqual({ id: 1 });
+    });
+
+    test("logout", () => {
         localStorage.setItem("access", "a");
         localStorage.setItem("refresh", "r");
 

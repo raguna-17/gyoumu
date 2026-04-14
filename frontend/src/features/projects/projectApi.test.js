@@ -1,4 +1,21 @@
-import axios from "axios";
+import { vi } from "vitest";
+
+const mockAxiosInstance = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    interceptors: {
+        request: { use: vi.fn() },
+    },
+};
+
+vi.mock("axios", () => ({
+    default: {
+        create: () => mockAxiosInstance,
+    },
+}));
+
 import {
     fetchProjects,
     createProject,
@@ -7,15 +24,14 @@ import {
     deleteProject,
 } from "./projectApi";
 
-jest.mock("axios");
-
 describe("projectApi", () => {
     beforeEach(() => {
-        localStorage.setItem("token", "test-token");
+        localStorage.setItem("token", "test");
+        vi.clearAllMocks();
     });
 
     test("fetchProjects", async () => {
-        axios.get.mockResolvedValue({ data: [{ id: 1 }] });
+        mockAxiosInstance.get.mockResolvedValue({ data: [{ id: 1 }] });
 
         const res = await fetchProjects();
 
@@ -23,7 +39,7 @@ describe("projectApi", () => {
     });
 
     test("createProject", async () => {
-        axios.post.mockResolvedValue({ data: { id: 1 } });
+        mockAxiosInstance.post.mockResolvedValue({ data: { id: 1 } });
 
         const res = await createProject({ name: "test" });
 
@@ -31,7 +47,7 @@ describe("projectApi", () => {
     });
 
     test("fetchProject", async () => {
-        axios.get.mockResolvedValue({ data: { id: 1 } });
+        mockAxiosInstance.get.mockResolvedValue({ data: { id: 1 } });
 
         const res = await fetchProject(1);
 
@@ -39,7 +55,7 @@ describe("projectApi", () => {
     });
 
     test("updateProject", async () => {
-        axios.put.mockResolvedValue({ data: { id: 1 } });
+        mockAxiosInstance.put.mockResolvedValue({ data: { id: 1 } });
 
         const res = await updateProject(1, { name: "new" });
 
@@ -47,10 +63,10 @@ describe("projectApi", () => {
     });
 
     test("deleteProject", async () => {
-        axios.delete.mockResolvedValue({});
+        mockAxiosInstance.delete.mockResolvedValue({});
 
         await deleteProject(1);
 
-        expect(axios.delete).toHaveBeenCalled();
+        expect(mockAxiosInstance.delete).toHaveBeenCalled();
     });
 });

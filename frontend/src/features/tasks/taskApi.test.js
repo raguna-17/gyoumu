@@ -1,15 +1,30 @@
-import axios from "axios";
-import { fetchTasks, createTask, deleteTask } from "./taskApi";
+import { vi } from "vitest";
 
-jest.mock("axios");
+const mockAxiosInstance = {
+    get: vi.fn(),
+    post: vi.fn(),
+    delete: vi.fn(),
+    interceptors: {
+        request: { use: vi.fn() },
+    },
+};
+
+vi.mock("axios", () => ({
+    default: {
+        create: () => mockAxiosInstance,
+    },
+}));
+
+import { fetchTasks, createTask, deleteTask } from "./taskApi";
 
 describe("taskApi", () => {
     beforeEach(() => {
-        localStorage.setItem("token", "test-token");
+        localStorage.setItem("token", "test");
+        vi.clearAllMocks();
     });
 
     test("fetchTasks", async () => {
-        axios.get.mockResolvedValue({ data: [{ id: 1 }] });
+        mockAxiosInstance.get.mockResolvedValue({ data: [{ id: 1 }] });
 
         const res = await fetchTasks(1);
 
@@ -17,7 +32,7 @@ describe("taskApi", () => {
     });
 
     test("createTask", async () => {
-        axios.post.mockResolvedValue({ data: { id: 1 } });
+        mockAxiosInstance.post.mockResolvedValue({ data: { id: 1 } });
 
         const res = await createTask(1, { title: "task" });
 
@@ -25,10 +40,10 @@ describe("taskApi", () => {
     });
 
     test("deleteTask", async () => {
-        axios.delete.mockResolvedValue({});
+        mockAxiosInstance.delete.mockResolvedValue({});
 
         await deleteTask(1, 2);
 
-        expect(axios.delete).toHaveBeenCalled();
+        expect(mockAxiosInstance.delete).toHaveBeenCalled();
     });
 });
