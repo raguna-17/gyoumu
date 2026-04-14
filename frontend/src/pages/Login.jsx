@@ -5,23 +5,41 @@ import { login } from "../features/auth/authApi";
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+
         try {
             const res = await login(email, password);
 
-            // 👇 ここが核心
-            const token = res.token || res.access;
-            localStorage.setItem("token", token);
+            // JWT取得（統一済み想定）
+            const access = res.access;
+
+            localStorage.setItem("access", access);
 
             alert("ログイン成功");
 
             navigate("/home");
+
         } catch (err) {
-            alert("ログイン失敗");
-            console.error(err);
+            const data = err?.data;
+
+            // DRF / SimpleJWT対応
+            if (data?.detail) {
+                alert(data.detail);
+            } else if (data?.non_field_errors) {
+                alert(data.non_field_errors[0]);
+            } else {
+                alert("ログイン失敗");
+            }
+
+            console.error("Login error:", err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -46,11 +64,14 @@ const Login = () => {
                 />
                 <br />
 
-                <button type="submit">ログイン</button>
+                <button type="submit" disabled={loading}>
+                    {loading ? "ログイン中..." : "ログイン"}
+                </button>
             </form>
 
             <p>
-                アカウントない？ <Link to="/register">登録はこちら</Link>
+                アカウントない？{" "}
+                <Link to="/register">登録はこちら</Link>
             </p>
         </div>
     );

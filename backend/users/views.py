@@ -1,32 +1,51 @@
 from rest_framework import generics, permissions
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.response import Response
 from .models import User
 from .serializers import UserSerializer, UserCreateSerializer
 
 
-class UserCreateView(generics.CreateAPIView):#CreateAPIViewでも汎用設計の都合で queryset が必要なだけで、登録ロジックには直接関与しない
-    """
-    ユーザー登録専用API
-    """
-    queryset = User.objects.all()#DRFの仕様的に必要なだけ
-    serializer_class = UserCreateSerializer#emailチェックpassword処理
-    permission_classes = [permissions.AllowAny]#ログインしてなくても登録OK
+class UserCreateView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserCreateSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "error": "validation_error",
+                    "fields": serializer.errors
+                },
+                status=400
+            )
+
+        self.perform_create(serializer)
+
+        return Response(
+            {
+                "message": "user_created",
+                "user": serializer.data
+            },
+            status=201
+        )
+
     def perform_create(self, serializer):
-        print("🔥 HIT CREATE VIEW")
-        print("DATA:", serializer.validated_data)
         serializer.save()
 
-class UserListView(generics.ListAPIView):#GETで一覧返すだけのView
+
+class UserListView(generics.ListAPIView):
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAdminUser]#これ外すと全ユーザー情報公開API完成（地獄
+    permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
         return User.objects.all()
 
 
-class MeView(generics.RetrieveAPIView):#単一オブジェクト取得View
+class MeView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_object(self):#URLのID無視,「他人の情報にアクセスする手段が存在しない」
-        return self.request.user#IDベース設計を捨ててユーザーコンテキスト直参照にしてるのが本質
+    def get_object(self):
+        return self.request.user

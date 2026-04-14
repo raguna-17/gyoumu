@@ -5,28 +5,54 @@ import { register } from "../features/auth/authApi";
 const Register = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+
         try {
             await register(email, password);
+
             alert("登録成功。ログインしてください");
+
             navigate("/login");
+
         } catch (err) {
-            console.log(err.response);
+            const data = err?.data;
 
-            // Django REST Framework想定
-            if (err.response && err.response.data) {
-                const data = err.response.data;
+            // 新API形式（統一後）
+            if (data?.error === "validation_error") {
+                const fields = data.fields;
 
-                if (data.email) {
-                    alert("このメールアドレスは既に登録されています");
+                if (fields?.email) {
+                    alert(fields.email[0]);
+                    return;
+                }
+
+                if (fields?.password) {
+                    alert(fields.password[0]);
                     return;
                 }
             }
 
+            // DRF直返し互換（保険）
+            if (data?.email) {
+                const msg = Array.isArray(data.email)
+                    ? data.email[0]
+                    : data.email;
+
+                alert(msg);
+                return;
+            }
+
             alert("登録失敗");
+            console.error("Register error:", err);
+
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -45,17 +71,20 @@ const Register = () => {
 
                 <input
                     type="password"
-                    placeholder="パスワード"
+                    placeholder="パスワード（4文字以上）"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                 />
                 <br />
 
-                <button type="submit">登録</button>
+                <button type="submit" disabled={loading}>
+                    {loading ? "登録中..." : "登録"}
+                </button>
             </form>
 
             <p>
-                もうアカウントある？ <Link to="/login">ログインへ</Link>
+                もうアカウントある？{" "}
+                <Link to="/login">ログインへ</Link>
             </p>
         </div>
     );
