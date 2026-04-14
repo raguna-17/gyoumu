@@ -1,63 +1,122 @@
-import { vi, describe, test, expect, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import axios from "axios";
 
-/* =========================
-   axios mock（ホイスティング回避）
-========================= */
-vi.mock("axios", () => {
-    const mockAxiosInstance = {
-        get: vi.fn(),
-        post: vi.fn(),
-        delete: vi.fn(),
-        put: vi.fn(),
-        interceptors: {
-            request: {
-                use: vi.fn((fn) => fn),
-            },
-        },
+// localStorage モック（jsdom前提でも安全にする保険）
+const localStorageMock = (() => {
+    let store = {};
+    return {
+        getItem: (key) => store[key] || null,
+        setItem: (key, value) => (store[key] = value),
+        removeItem: (key) => delete store[key],
+        clear: () => (store = {}),
     };
+})();
+
+Object.defineProperty(window, "localStorage", {
+    value: localStorageMock,
+});
+
+// axiosモック
+vi.mock("axios", () => {
+    const post = vi.fn();
+    const get = vi.fn();
 
     return {
         default: {
-            create: vi.fn(() => mockAxiosInstance),
+            create: () => ({
+                post,
+                get,
+                interceptors: {
+                    request: {
+                        use: vi.fn((fn) => fn),
+                    },
+                },
+            }),
         },
     };
 });
 
-/* =========================
-   importはmockの後
-========================= */
+// テスト対象（mockより後にimportするのが重要）
 import { register, login, getMe, logout } from "./authApi";
 
-/* =========================
-   テスト内で参照したい場合
-   → 外に出さない（重要）
-========================= */
-
 describe("authApi", () => {
+    let mockAxios;
+
     beforeEach(() => {
         localStorage.clear();
         vi.clearAllMocks();
+
+        mockAxios = axios.create();
     });
 
-    test("register", async () => {
-        const res = await register("test@test.com", "pass");
-        expect(res).toBeDefined();
+    // =====================
+    // register
+    // =====================
+    it("register: API呼び出し & access削除", async () => {
+        mockAxios.post.mockResolvedValueOnce({
+            data: { id: 1, email: "test@test.com" },
+        });
+
+        localStorage.setItem("access", "old-token");
+
+        const result = await register("test@test.com", "pass");
+
+        expect(mockAxios.post).toHaveBeenCalledWith("/users/", {
+            email: "test@test.com",
+            password: "pass",
+        });
+
+        expect(result.email).toBe("test@test.com");
+        expect(localStorage.getItem("access")).toBe(null);
     });
 
-    test("login stores tokens", async () => {
-        await login("test@test.com", "pass");
+    // =====================
+    // login
+    // =====================
+    it("login: token保存される", async () => {
+        mockAxios.post.mockResolvedValueOnce({
+            data: {
+                access: "access-token",
+                refresh: "refresh-token",
+            },
+        });
 
-        expect(localStorage.getItem("access")).toBeDefined();
-        expect(localStorage.getItem("refresh")).toBeDefined();
+        const result = await login("test@test.com", "pass");
+
+        expect(mockAxios.post).toHaveBeenCalledWith("/auth/token/", {
+            email: "test@test.com",
+            password: "pass",
+        });
+
+        expect(localStorage.getItem("access")).toBe("access-token");
+        expect(localStorage.getItem("refresh")).toBe("refresh-token");
+        expect(result.access).toBe("access-token");
     });
 
-    test("logout clears tokens", () => {
+    // =====================
+    // getMe
+    // =====================
+    it("getMe: ユーザー情報取得", async () => {
+        mockAxios.get.mockResolvedValueOnce({
+            data: { id: 1, email: "me@test.com" },
+        });
+
+        const result = await getMe();
+
+        expect(mockAxios.get).toHaveBeenCalledWith("/users/me/");
+        expect(result.email).toBe("me@test.com");
+    });
+
+    // =====================
+    // logout
+    // =====================
+    it("logout: localStorage削除", () => {
         localStorage.setItem("access", "a");
-        localStorage.setItem("refresh", "r");
+        localStorage.setItem("refresh", "b");
 
         logout();
 
-        expect(localStorage.getItem("access")).toBeNull();
-        expect(localStorage.getItem("refresh")).toBeNull();
+        expect(localStorage.getItem("access")).toBe(null);
+        expect(localStorage.getItem("refresh")).toBe(null);
     });
 });
