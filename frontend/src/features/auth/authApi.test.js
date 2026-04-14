@@ -1,6 +1,8 @@
 import { vi } from "vitest";
 
-/* axios完全モック */
+/* =========================
+   axios完全モック（安全版）
+========================= */
 const mockAxiosInstance = {
     get: vi.fn(),
     post: vi.fn(),
@@ -8,7 +10,7 @@ const mockAxiosInstance = {
     put: vi.fn(),
     interceptors: {
         request: {
-            use: vi.fn(),
+            use: vi.fn((fn) => fn),
         },
     },
 };
@@ -16,14 +18,19 @@ const mockAxiosInstance = {
 vi.mock("axios", () => {
     return {
         default: {
-            create: () => mockAxiosInstance,
+            create: vi.fn(() => mockAxiosInstance),
         },
     };
 });
 
-import axios from "axios";
+/* =========================
+   importはmockの後
+========================= */
 import { register, login, getMe, logout } from "./authApi";
 
+/* =========================
+   tests
+========================= */
 describe("authApi", () => {
     beforeEach(() => {
         localStorage.clear();
@@ -36,7 +43,10 @@ describe("authApi", () => {
         const res = await register("test@test.com", "pass");
 
         expect(res).toEqual({ id: 1 });
-        expect(mockAxiosInstance.post).toHaveBeenCalled();
+        expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+            "/users/",
+            { email: "test@test.com", password: "pass" }
+        );
     });
 
     test("login stores tokens", async () => {
@@ -58,12 +68,13 @@ describe("authApi", () => {
         expect(res).toEqual({ id: 1 });
     });
 
-    test("logout", () => {
+    test("logout clears tokens", () => {
         localStorage.setItem("access", "a");
         localStorage.setItem("refresh", "r");
 
         logout();
 
         expect(localStorage.getItem("access")).toBeNull();
+        expect(localStorage.getItem("refresh")).toBeNull();
     });
 });
