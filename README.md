@@ -1,198 +1,77 @@
-本システムでは、DjangoのカスタムUserモデルを採用し、emailをログインIDとした認証基盤を実装しています。
+# 業務管理アプリ（Gyoumu App）
 
-ユーザー登録は専用APIから行い、emailとpasswordを必須としています。
-emailは正規化して重複登録を防止し、passwordは必ずハッシュ化して保存することでセキュリティを確保しています。
+## 概要
 
-ユーザー作成は直接モデル操作せず、UserManagerを経由することで作成ルールを統一し、不正なユーザー生成を防ぐ設計にしています。
+プロジェクト単位でタスクを管理できる業務アプリです。
+JWT認証を用いたAPI設計と、フロント・バックエンドの責務分離を意識して構築しました。
 
-また、ユーザー情報の取得は読み取り専用として分離しており、登録用と取得用でSerializerを分けることで責務を明確化しています。
+実務を想定し、以下を重視しています：
 
-認証方式はemailベースで統一し、Django標準のusernameは使用していません。
-
-全体として、認証・データ生成・表示の責務を分離した、安全性と拡張性を意識したユーザー管理設計になっています。
-本システムのタスク機能は、プロジェクト単位でタスクを管理する構造になっており、各タスクは必ず特定のプロジェクトに属する階層型データとして設計されています。
-
-タスクは「作成」「閲覧」「更新」「削除」の基本CRUD操作を持ちますが、すべての操作は認証済みユーザーに限定され、さらにプロジェクト所有者単位でアクセス制御が行われています。
-本プロジェクトは、Django REST Frameworkを用いたJWT認証ベースのAPIサーバーであり、ユーザー・タスク・管理画面のドメイン分離を行ったマルチアプリ構成です。環境変数による設定分離とCORS制御により、フロントエンド分離構成（SPA）と本番デプロイ（Render/PostgreSQL）に対応しています。
-
-
-# Task Management App
-
-## Overview
-
-タスク・プロジェクトを管理するWebアプリケーションです。
-JWT認証を用いたAPIと、Reactによるフロントエンドを分離した構成になっています。
-
-* ユーザー認証（JWT）
-* プロジェクト管理
-* タスクCRUD
-* 担当者・進捗管理
+* 認証を含めたセキュアなAPI設計
+* フロントとバックの疎結合構成
+* スケーラブルなディレクトリ設計
 
 ---
 
-https://gyoumu-bakku.onrender.com
-https://gyoumu-furonto.onrender.com
+## 技術選定の理由
 
-## Tech Stack
+### フロントエンド
 
-### Backend
+React + Vite→ 高速な開発環境とコンポーネントベース設計のため
 
-* Python / Django
-* Django REST Framework
-* JWT認証（SimpleJWT）
-* PostgreSQL
-* Docker
+Axios→ interceptorによる認証トークンの一元管理が可能
 
-### Frontend
+### バックエンド
 
-* React（Vite）
-* Axios
-* Custom Hooks（ロジック分離）
+Django REST Framework→ CRUDだけでなく権限管理・拡張性を考慮
 
----
+SimpleJWT→ ステートレスな認証を実現し、スケーラビリティを担保
 
-## Architecture
+### インフラ 
 
-### Backend構成
+Docker→ 環境差異の排除
 
-* app単位で責務分離（users / tasks / dashboard）
-* DRFのViewSet + SerializerでAPI設計
-* JWTによる認証必須（全API）
-
-### Frontend構成
-
-* featureベース構成
-* API層 / Hooks / UI を分離
-
-```
-features/
-  tasks/
-    api/        ← API通信
-    useTasks.js ← 状態管理・ロジック
-    components/ ← UI
-```
+PostgreSQL→ 本番運用を想定したRDB選定
 
 ---
 
-## Key Implementation
 
-### Backend
+![alt text](image.png)
+![alt text](image-1.png)
 
-#### データモデル
+## https://gyoumu-furonto.onrender.com
 
-* Project と Task を1対多で管理
-* Taskに進捗・担当者・期限を保持
 
-#### API設計
+## アーキテクチャ
+フロントエンドとバックエンドを完全分離
+REST APIで通信
+ViewSet / generics を用途に応じて使い分け
+権限クラスでアクセス制御を実装
+URL設計はRESTfulを意識
 
-* ViewSetでCRUDを統一
-* 認証済ユーザーのみアクセス可能
 
-#### Serializer
+## 認証設計
 
-* ネスト構造でProject情報を含めて返却
-* 書き込み時は `project_id` を使用
+JWT認証を採用し、以下のフローで管理：
 
----
+ログイン時にaccess / refreshトークンを発行
+フロントでトークンを保持
+Axios interceptorで自動付与
 
-### Frontend
 
-#### API層
+## 実装上の工夫
+Axios interceptorによる認証処理の共通化
+APIバージョニング（/api/v1/）による将来拡張性確保
+プロジェクト配下にタスクを持たせるドメイン設計
 
-Axios + JWTで認証付き通信
+## 課題と改善
+### 課題
+リフレッシュトークンの自動更新未実装
+UI/UXの最適化不足
+### 改善案
+トークン自動更新ロジックの実装（silent refresh）
+コンポーネント分割と状態管理の最適化
 
-* GET /tasks/
-* POST /tasks/
-* PATCH /tasks/:id/
-* DELETE /tasks/:id/
-
-#### カスタムHook（useTasks）
-
-* タスク状態管理
-* 入力バリデーション
-* API呼び出し集約
-
-例：
-
-* 進捗（0〜100）バリデーション
-* ユーザーID検証
-* optimistic update
-
-👉 UIとロジックを分離し、再利用性を確保
-
----
-
-## Features
-
-* タスク一覧取得
-* タスク作成
-* タスク更新（進捗・ステータス・担当者）
-* タスク削除
-* 入力バリデーション
-
----
-
-## Testing
-
-### Backend
-
-* pytest使用
-* 各app単位でテスト実装
-
-### Frontend
-
-* Vitest使用
-* API層・Hooksを中心にテスト
-* カバレッジ測定対応
-
----
-
-## Setup
-
-### Backend
-
-```bash
-cd backend
-docker-compose up --build
-```
-
----
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
----
-
-## Environment Variables
-
-### Backend
-
-* DJANGO_SECRET_KEY
-* DJANGO_DEBUG
-* DATABASE_URL
-
-### Frontend
-
-* VITE_API_URL
-
----
-
-## Notes
-
-* 認証はJWTベース
-* APIはすべて認証必須
-* CORSは開発用に全許可
-
----
-
-## Future Improvements
-
-* 権限管理（管理者制御）
-* UIテスト追加
-* フィルタ・検索機能
-* パフォーマンス最適化
+## 今後の展望
+RBAC（ロールベースアクセス制御）の導入
+WebSocketによるリアルタイム更新
