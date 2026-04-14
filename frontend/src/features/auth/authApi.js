@@ -3,6 +3,8 @@ import axios from "axios";
 const API = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
 });
+console.log("API baseURL:", import.meta.env.VITE_API_URL);
+
 // トークン自動付与
 API.interceptors.request.use((config) => {
     const token = localStorage.getItem("access");
