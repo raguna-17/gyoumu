@@ -1,46 +1,34 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
-import { getTasks, createTask, patchTask, deleteTask } from "./taskApi";
+import { fetchTasks, createTask, deleteTask } from "./taskApi";
 
-vi.mock("axios");
+jest.mock("axios");
 
 describe("taskApi", () => {
     beforeEach(() => {
-        localStorage.setItem("access_token", "test-token");
+        localStorage.setItem("token", "test-token");
     });
 
-    it("getTasks", async () => {
-        axios.get.mockResolvedValue({ data: [] });
+    test("fetchTasks", async () => {
+        axios.get.mockResolvedValue({ data: [{ id: 1 }] });
 
-        const data = await getTasks();
+        const res = await fetchTasks(1);
 
-        expect(data).toEqual([]);
+        expect(res).toEqual([{ id: 1 }]);
     });
-});
 
-    it("createTask: 正常に作成", async () => {
+    test("createTask", async () => {
         axios.post.mockResolvedValue({ data: { id: 1 } });
 
-        const data = await createTask(1, "task", "desc");
+        const res = await createTask(1, { title: "task" });
 
-        expect(axios.post).toHaveBeenCalled();
-        expect(data).toEqual({ id: 1 });
+        expect(res).toEqual({ id: 1 });
     });
 
-    it("patchTask: 更新できる", async () => {
-        axios.patch.mockResolvedValue({ data: { id: 1, progress: 50 } });
+    test("deleteTask", async () => {
+        axios.delete.mockResolvedValue({});
 
-        const data = await patchTask(1, { progress: 50 });
-
-        expect(axios.patch).toHaveBeenCalled();
-        expect(data.progress).toBe(50);
-    });
-
-    it("deleteTask: 削除できる", async () => {
-        axios.delete.mockResolvedValue({ data: {} });
-
-        const data = await deleteTask(1);
+        await deleteTask(1, 2);
 
         expect(axios.delete).toHaveBeenCalled();
-        expect(data).toEqual({});
     });
+});

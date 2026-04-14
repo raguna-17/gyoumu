@@ -7,7 +7,7 @@ const API_URL = `${API_BASE_URL}/projects/`;
 // token前提
 const getAuthHeader = () => ({
     headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${localStorage.getItem("access")}`,
     },
 });
 

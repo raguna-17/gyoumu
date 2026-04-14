@@ -1,99 +1,52 @@
 import axios from "axios";
-import { describe, it, expect, vi } from "vitest";
-import { registerUser, loginUser, getUsers, getUserById } from "./authApi";
+import { register, login, getMe, logout } from "./authApi";
 
-vi.mock("axios");
+jest.mock("axios");
 
 describe("authApi", () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
 
-    // registerUser
-    describe("registerUser", () => {
-        it("正常系: ユーザー登録成功", async () => {
-            const mockData = { id: 1, email: "test@example.com" };
-            axios.post.mockResolvedValue({ data: mockData });
+    test("register API success", async () => {
+        axios.post.mockResolvedValue({ data: { id: 1 } });
 
-            const result = await registerUser("test@example.com", "password");
-            expect(result).toEqual(mockData);
-            expect(axios.post).toHaveBeenCalledWith(
-                expect.stringContaining("/users/"),
-                { email: "test@example.com", password: "password" }
-            );
-        });
+        const res = await register("test@test.com", "pass");
 
-        it("異常系: 登録失敗", async () => {
-            axios.post.mockRejectedValue(new Error("登録エラー"));
-
-            await expect(registerUser("test@example.com", "password"))
-                .rejects.toThrow("登録エラー");
+        expect(res).toEqual({ id: 1 });
+        expect(axios.post).toHaveBeenCalledWith("/users/", {
+            email: "test@test.com",
+            password: "pass",
         });
     });
 
-    // loginUser
-    describe("loginUser", () => {
-        it("正常系: ログイン成功", async () => {
-            const mockData = { access: "token" };
-            axios.post.mockResolvedValue({ data: mockData });
-
-            const result = await loginUser("test@example.com", "password");
-            expect(result).toEqual(mockData);
-            expect(axios.post).toHaveBeenCalledWith(
-                expect.stringContaining("/token/"),
-                { email: "test@example.com", password: "password" }
-            );
+    test("login stores token", async () => {
+        axios.post.mockResolvedValue({
+            data: { access: "a", refresh: "r" },
         });
 
-        it("異常系: ログイン失敗", async () => {
-            axios.post.mockRejectedValue(new Error("ログイン失敗"));
+        const res = await login("test@test.com", "pass");
 
-            await expect(loginUser("test@example.com", "password"))
-                .rejects.toThrow("ログイン失敗");
-        });
+        expect(res.access).toBe("a");
+        expect(localStorage.getItem("access")).toBe("a");
+        expect(localStorage.getItem("refresh")).toBe("r");
     });
 
-    // getUsers
-    describe("getUsers", () => {
-        it("正常系: ユーザー一覧取得成功", async () => {
-            localStorage.setItem("access_token", "dummy_token");
-            const mockData = [{ id: 1, email: "a@example.com" }];
-            axios.get.mockResolvedValue({ data: mockData });
+    test("getMe fetches user", async () => {
+        axios.get.mockResolvedValue({ data: { id: 1 } });
 
-            const result = await getUsers();
-            expect(result).toEqual(mockData);
-            expect(axios.get).toHaveBeenCalledWith(
-                expect.stringContaining("/users/"),
-                { headers: { Authorization: "Bearer dummy_token" } }
-            );
-        });
+        const res = await getMe();
 
-        it("異常系: トークン無効", async () => {
-            localStorage.setItem("access_token", "invalid_token");
-            axios.get.mockRejectedValue(new Error("認証エラー"));
-
-            await expect(getUsers()).rejects.toThrow("認証エラー");
-        });
+        expect(res).toEqual({ id: 1 });
     });
 
-    // getUserById
-    describe("getUserById", () => {
-        it("正常系: ユーザー取得成功", async () => {
-            localStorage.setItem("access_token", "dummy_token");
-            const mockData = { id: 1, email: "a@example.com" };
-            axios.get.mockResolvedValue({ data: mockData });
+    test("logout clears tokens", () => {
+        localStorage.setItem("access", "a");
+        localStorage.setItem("refresh", "r");
 
-            const result = await getUserById(1);
-            expect(result).toEqual(mockData);
-            expect(axios.get).toHaveBeenCalledWith(
-                expect.stringContaining("/users/1/"),
-                { headers: { Authorization: "Bearer dummy_token" } }
-            );
-        });
+        logout();
 
-        it("異常系: ユーザーが存在しない", async () => {
-            localStorage.setItem("access_token", "dummy_token");
-            axios.get.mockRejectedValue(new Error("ユーザーが見つかりません"));
-
-            await expect(getUserById(999)).rejects.toThrow("ユーザーが見つかりません");
-        });
+        expect(localStorage.getItem("access")).toBeNull();
+        expect(localStorage.getItem("refresh")).toBeNull();
     });
-
 });

@@ -5,11 +5,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 // token
 const getAuthHeader = () => ({
     headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${localStorage.getItem("access")}`,
     },
 });
 
 // 一覧取得
+
+
 export const fetchTasks = async (projectId) => {
     const res = await axios.get(
         `${API_BASE_URL}/projects/${projectId}/tasks/`,
